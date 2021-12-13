@@ -14,9 +14,9 @@ namespace FrFontSubsetBug
         
         static async Task Main(string[] args)
         {
-            // await RenderReportsAsync(Enumerable.Range(0, 10));
+            await RenderReportsAsync(Enumerable.Range(0, 10));
             
-            RenderReports(Enumerable.Range(90, 10));
+            // RenderReports(Enumerable.Range(0, 10));
         }
 
         private static Task RenderReportsAsync(IEnumerable<int> range)
