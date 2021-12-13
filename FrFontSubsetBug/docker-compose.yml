@@ -1,0 +1,7 @@
+﻿version: "3.9"
+services:
+  output:
+    build:
+      context: .
+    volumes:
+      - ./docker-output:/app/output
