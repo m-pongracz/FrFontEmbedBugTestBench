@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:6.0-focal AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
@@ -13,7 +13,7 @@ COPY fonts/ ../usr/local/share/fonts/
 RUN dotnet publish -c release -o /app --no-restore
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/runtime:6.0-focal
+FROM mcr.microsoft.com/dotnet/runtime:5.0.13-buster-slim
 
 WORKDIR /app
 COPY --from=build /usr/local/share/fonts/ ../usr/local/share/fonts/

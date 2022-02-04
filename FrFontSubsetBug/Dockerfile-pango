@@ -1,0 +1,42 @@
+FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
+WORKDIR /source
+
+# copy csproj and restore as distinct layers
+COPY *.csproj .
+RUN dotnet restore
+
+# copy and publish app and libraries
+COPY . .
+
+COPY fonts/ ../usr/local/share/fonts/
+
+RUN dotnet publish -c release -o /app --no-restore
+
+# final stage/image
+FROM mcr.microsoft.com/dotnet/runtime:5.0.13-buster-slim
+
+WORKDIR /app
+COPY --from=build /usr/local/share/fonts/ ../usr/local/share/fonts/
+
+RUN chmod -Rf 777 /usr/local/share/fonts/*
+
+COPY --from=build /app .
+
+RUN apt update
+
+RUN apt-get install libgif-dev autoconf libtool automake build-essential gettext libglib2.0-dev libcairo2-dev libtiff-dev libexif-dev libpango1.0-dev --yes
+
+WORKDIR /make-libgdiplus 
+
+RUN apt install git --yes
+RUN git clone https://github.com/mono/libgdiplus.git
+
+WORKDIR /make-libgdiplus/libgdiplus
+
+RUN ./autogen.sh --with-pango --prefix=/usr
+RUN make
+RUN make install
+
+WORKDIR /app
+ 
+ENTRYPOINT ["dotnet", "FrFontSubsetBug.dll"]

@@ -3,5 +3,7 @@ services:
   output:
     build:
       context: .
+      dockerfile: ./Dockerfile-pango
+#      dockerfile: ./Dockerfile
     volumes:
       - ./docker-output:/app/output
