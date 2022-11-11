@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -9,33 +10,76 @@ namespace FrFontSubsetBug
 {
     class Program
     {
-        private const string ReportName = "FontTest.frx";
-        // private const string ReportName = "SimpleTest.frx";
+        // private const string ReportName = "FontTest.frx";
+        private const string ReportName = "SimpleTest.frx";
+
+        private const string OutputPath = "output";
         
-        static async Task Main(string[] args)
+        static async Task<int> Main(string[] args)
         {
-            await RenderReportsAsync(Enumerable.Range(0, 10));
+            var docsNum = 100;
             
-            // RenderReports(Enumerable.Range(0, 10));
+            var runConf = args[0];
+
+            switch (runConf)
+            {
+                case "single":
+                    await RenderReportsAsync(Enumerable.Range(0, docsNum));
+                    break;
+                case "multi":
+                    await RenderReportsParallel(Enumerable.Range(0, docsNum));
+                    break;
+                case "pcl":
+                    var files = await RenderReportsParallel(Enumerable.Range(0, docsNum));
+
+                    var logLines = new List<string>();
+                    
+                    var gs = new GhostScriptUtils(OutputPath);    
+                    
+                    foreach (var f in files)
+                    {
+                        var log = await gs.ConvertPdfAsync(f, "ljet4", 100);
+
+                        if (!string.IsNullOrEmpty(log))
+                        {
+                            logLines.Add($"{f.Name}: {log}");
+                        }
+                    }
+
+                    await File.WriteAllLinesAsync(Path.Combine(OutputPath, "complete_gs_log.txt"), logLines);
+                    
+                    break;
+            }
+            
+            return 0;
         }
 
-        private static Task RenderReportsAsync(IEnumerable<int> range)
+        private static async Task<IEnumerable<FileInfo>> RenderReportsParallel(IEnumerable<int> range)
         {
-            var tasks = range.Select(i => Task.Run(() => RenderReport(i)));
+            var files = new List<FileInfo>();
             
-            return Task.WhenAll(tasks);
+            await Parallel.ForEachAsync(range, async (i, _) =>
+            {
+                var f = await RenderReport(i);
+                
+                files.Add(f);
+            });
+
+            return files;
         }
 
-        private static void RenderReports(IEnumerable<int> range)
+        private static async Task RenderReportsAsync(IEnumerable<int> range)
         {
             foreach(var i in range)
             {
-                RenderReport(i);
+                await RenderReport(i);
             }
         }
         
-        private static void RenderReport(int i)
+        private static async Task<FileInfo> RenderReport(int i)
         {
+            Console.WriteLine($"Rendering: {i}");
+            
             using var report = new Report();
             using var pdfExport = new PDFExport()
             {
@@ -43,7 +87,7 @@ namespace FrFontSubsetBug
                 EmbeddingFonts = true
             };
 
-            var f = new FileInfo(Path.Combine("output", $"export_fr_embed{i}.pdf"));
+            var f = new FileInfo(Path.Combine(OutputPath, $"export_fr_embed{i}.pdf"));
 
             f.Directory!.Create();
 
@@ -53,7 +97,11 @@ namespace FrFontSubsetBug
             report.Prepare();
             report.Export(pdfExport, ms);
             
-            File.WriteAllBytes(f.FullName, ms.ToArray());
+            await File.WriteAllBytesAsync(f.FullName, ms.ToArray());
+            
+            Console.WriteLine($"Finished rendering: {i}");
+
+            return f;
         }
     }
 }

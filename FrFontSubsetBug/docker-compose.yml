@@ -5,5 +5,13 @@ services:
       context: .
       dockerfile: ./Dockerfile-pango
 #      dockerfile: ./Dockerfile
+    command: multi
+    volumes:
+      - ./docker-output:/app/output
+  output-skia:
+    build:
+      context: .
+      dockerfile: ./Dockerfile-skia
+    command: pcl  
     volumes:
       - ./docker-output:/app/output
