@@ -1,4 +1,4 @@
-﻿FROM mcr.microsoft.com/dotnet/sdk:6.0.101-focal AS build
+﻿FROM mcr.microsoft.com/dotnet/sdk:6.0.403 AS build
 WORKDIR /source
 
 # copy csproj and restore as distinct layers
@@ -14,7 +14,7 @@ COPY fonts/ ../usr/local/share/fonts/
 RUN dotnet publish -c release -o /app --no-restore
 
 # final stage/image
-FROM mcr.microsoft.com/dotnet/sdk:6.0.101-focal AS base
+FROM mcr.microsoft.com/dotnet/sdk:6.0.403 AS base
 
 WORKDIR /app
 COPY --from=build /usr/local/share/fonts/ ../usr/local/share/fonts/
@@ -22,8 +22,14 @@ COPY --from=build /usr/local/share/fonts/ ../usr/local/share/fonts/
 RUN apt-get update
 RUN apt-get install -y libfontconfig1
 
+RUN echo ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula \
+  select true | debconf-set-selections
+RUN apt-get install -y wget
+RUN wget http://ftp.de.debian.org/debian/pool/contrib/m/msttcorefonts/ttf-mscorefonts-installer_3.6_all.deb -P /Downloads
+RUN apt-get install -y /Downloads/ttf-mscorefonts-installer_3.6_all.deb
+
 # setup ghostscript integration
-RUN apt-get install ghostscript=9.50~dfsg-5ubuntu4.6 --yes
+RUN apt-get install ghostscript=9.53.3~dfsg-7+deb11u2 --yes
 ENV GHOSTSCRIPT_PATH=gs
 
 COPY --from=build /app .
